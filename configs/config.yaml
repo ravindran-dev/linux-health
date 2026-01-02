@@ -1,0 +1,8 @@
+thresholds:
+  cpu_warn: 75
+  cpu_crit: 90
+  mem_warn: 70
+  mem_crit: 85
+  disk_warn: 80
+  disk_crit: 95
+

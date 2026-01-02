@@ -1,0 +1,17 @@
+
+# Go
+/bin/
+/pkg/
+/*.exe
+/*.test
+/*.out
+
+# OS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Build
+linux-health

@@ -1,4 +1,3 @@
-
 package system
 
 func GetSystemStats() (SystemStats, error) {
