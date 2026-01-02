@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/ravindran-dev/linux-health/internal/disk"
 	"github.com/ravindran-dev/linux-health/internal/network"
@@ -22,51 +21,57 @@ func main() {
 
 	health := system.GenerateHealth(stats)
 
-	topName, topPID, topMB := "", 0, uint64(0)
+	// ---- TOP MEMORY PROCESS ----
+	topName := ""
+	topPID := 0
+	var topMB uint64
+
 	if topProc, _ := process.TopMemoryProcess(); topProc != nil {
 		topName = topProc.Cmd
 		topPID = topProc.PID
 		topMB = topProc.MemKB / 1024
 	}
 
-	hotspot := ""
-	if home := os.Getenv("HOME"); home != "" {
-		dirs, _ := disk.Scan(
-			filepath.Dir(home),
-			map[string]bool{
-				"/proc": true,
-				"/sys":  true,
-				"/dev":  true,
-			},
+	// ---- DISK HOTSPOTS ----
+	hotspots := []string{}
+	dirs, _ := disk.TopDirs(os.Getenv("HOME"), 2)
+	for _, d := range dirs {
+		hotspots = append(
+			hotspots,
+			fmt.Sprintf("%s %s", d.Path, d.SizeHuman),
 		)
-		if len(dirs) > 0 {
-			hotspot = fmt.Sprintf(
-				"%s (%d MB)",
-				dirs[0].Path,
-				dirs[0].Size/1024/1024,
+	}
+
+	// ---- SERVICES ----
+	services := []string{}
+	failed, _ := service.FailedServices()
+	if len(failed) == 0 {
+		services = append(services, "✓ No failed services")
+	} else {
+		for _, s := range failed {
+			services = append(
+				services,
+				fmt.Sprintf("%s (%s)", s.Name, s.State),
 			)
 		}
 	}
 
-	netInfo := "inactive"
+	// ---- NETWORK ----
+	networkState := "inactive"
 	if nets, _ := network.ActiveInterfaces(); len(nets) > 0 {
-		netInfo = "active"
+		networkState = "active"
 	}
 
-	failedSvcs := 0
-	if failed, err := service.FailedServices(); err == nil {
-		failedSvcs = len(failed)
-	}
-
+	// ---- FINAL BOX OUTPUT ----
 	output.PrintBlock(
 		stats,
 		health,
 		topName,
 		topPID,
 		topMB,
-		hotspot,
-		netInfo,
-		failedSvcs,
+		networkState,
+		services,
+		hotspots,
 	)
 
 	os.Exit(health.ExitCode)
