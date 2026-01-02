@@ -34,25 +34,17 @@ func main() {
 
 	// ---- DISK HOTSPOTS ----
 	hotspots := []string{}
-	dirs, _ := disk.TopDirs(os.Getenv("HOME"), 2)
-	for _, d := range dirs {
-		hotspots = append(
-			hotspots,
-			fmt.Sprintf("%s %s", d.Path, d.SizeHuman),
-		)
+	if dirs, _ := disk.TopDirs(os.Getenv("HOME"), 2); len(dirs) > 0 {
+		for _, d := range dirs {
+			hotspots = append(hotspots, d.Path+" "+d.SizeHuman)
+		}
 	}
 
 	// ---- SERVICES ----
 	services := []string{}
-	failed, _ := service.FailedServices()
-	if len(failed) == 0 {
-		services = append(services, "✓ No failed services")
-	} else {
+	if failed, _ := service.FailedServices(); len(failed) > 0 {
 		for _, s := range failed {
-			services = append(
-				services,
-				fmt.Sprintf("%s (%s)", s.Name, s.State),
-			)
+			services = append(services, s.Name+" ("+s.State+")")
 		}
 	}
 
@@ -62,7 +54,7 @@ func main() {
 		networkState = "active"
 	}
 
-	// ---- FINAL BOX OUTPUT ----
+	// ---- OUTPUT ----
 	output.PrintBlock(
 		stats,
 		health,
