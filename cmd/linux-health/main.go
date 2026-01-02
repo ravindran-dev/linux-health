@@ -21,7 +21,6 @@ func main() {
 
 	health := system.GenerateHealth(stats)
 
-	// ---- TOP MEMORY PROCESS ----
 	topName := ""
 	topPID := 0
 	var topMB uint64
@@ -32,7 +31,6 @@ func main() {
 		topMB = topProc.MemKB / 1024
 	}
 
-	// ---- DISK HOTSPOTS ----
 	hotspots := []string{}
 	if dirs, _ := disk.TopDirs(os.Getenv("HOME"), 2); len(dirs) > 0 {
 		for _, d := range dirs {
@@ -48,13 +46,11 @@ func main() {
 		}
 	}
 
-	// ---- NETWORK ----
 	networkState := "inactive"
 	if nets, _ := network.ActiveInterfaces(); len(nets) > 0 {
 		networkState = "active"
 	}
 
-	// ---- OUTPUT ----
 	output.PrintBlock(
 		stats,
 		health,
