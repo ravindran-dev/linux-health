@@ -32,10 +32,10 @@ func main() {
 	}
 
 	hotspots := []string{}
-	if dirs, _ := disk.TopDirs(os.Getenv("HOME"), 2); len(dirs) > 0 {
-		for _, d := range dirs {
-			hotspots = append(hotspots, d.Path+" "+d.SizeHuman)
-		}
+	dirs, _ := disk.TopDirs(os.Getenv("HOME"), 2)
+
+	for _, d := range dirs {
+		hotspots = append(hotspots, d.Path+" "+d.SizeHuman)
 	}
 
 	// ---- SERVICES ----

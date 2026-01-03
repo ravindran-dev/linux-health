@@ -1,50 +1,49 @@
 package disk
 
 import (
-	"os"
-	"path/filepath"
+	"bytes"
+	"os/exec"
 	"sort"
-	"strconv"
+	"strings"
 )
 
 type DirUsage struct {
 	Path      string
-	SizeBytes uint64
 	SizeHuman string
 }
 
 func TopDirs(root string, limit int) ([]DirUsage, error) {
-	entries, err := os.ReadDir(root)
-	if err != nil {
+	cmd := exec.Command("du", "-sh", root+"/*")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
 
+	lines := strings.Split(out.String(), "\n")
 	var dirs []DirUsage
 
-	for _, e := range entries {
-		if !e.IsDir() {
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
 			continue
 		}
 
-		path := filepath.Join(root, e.Name())
-		size := uint64(0)
-
-		filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
-			if err == nil && !info.IsDir() {
-				size += uint64(info.Size())
-			}
-			return nil
-		})
+		parts := strings.Fields(line)
+		if len(parts) < 2 {
+			continue
+		}
 
 		dirs = append(dirs, DirUsage{
-			Path:      path,
-			SizeBytes: size,
-			SizeHuman: humanSize(size),
+			SizeHuman: parts[0],
+			Path:      parts[1],
 		})
 	}
 
+	// Sort descending by size string (du already sorts roughly)
 	sort.Slice(dirs, func(i, j int) bool {
-		return dirs[i].SizeBytes > dirs[j].SizeBytes
+		return dirs[i].SizeHuman > dirs[j].SizeHuman
 	})
 
 	if len(dirs) > limit {
@@ -52,18 +51,4 @@ func TopDirs(root string, limit int) ([]DirUsage, error) {
 	}
 
 	return dirs, nil
-}
-
-func humanSize(b uint64) string {
-	const gb = 1024 * 1024 * 1024
-	const mb = 1024 * 1024
-
-	if b >= gb {
-		return format(b, gb, "G")
-	}
-	return format(b, mb, "M")
-}
-
-func format(b, unit uint64, suffix string) string {
-	return strconv.FormatFloat(float64(b)/float64(unit), 'f', 1, 64) + suffix
 }
