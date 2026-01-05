@@ -2,8 +2,8 @@ package output
 
 import (
 	"fmt"
-
 	"github.com/ravindran-dev/linux-health/internal/system"
+	"strings"
 )
 
 const boxWidth = 40
@@ -41,15 +41,15 @@ func PrintBlock(
 	}
 
 	sep()
+	row("HOTSPOTS:")
 
-	if len(diskHotspots) > 0 {
-		row("HOTSPOTS:")
+	if len(diskHotspots) == 0 {
+		row("  No large directories found")
+	} else {
 		for _, d := range diskHotspots {
 			row("  " + trim(d))
 		}
-		sep()
 	}
-
 	row("SERVICES:")
 	if len(failedServices) == 0 {
 		row("  ✓ No failed services")
@@ -60,7 +60,8 @@ func PrintBlock(
 	}
 
 	sep()
-	row(fmt.Sprintf("NETWORK : %s", network))
+
+	printNetwork(network)
 
 	bottom()
 }
@@ -124,4 +125,27 @@ func trim(s string) string {
 		return s[:inner-7] + "..."
 	}
 	return s
+}
+
+func printNetwork(n string) {
+
+	if n == "" {
+		row("NETWORK : unavailable")
+		return
+	}
+
+	parts := strings.Fields(n)
+
+	if len(parts) < 6 {
+		row("NETWORK : " + trim(n))
+		return
+	}
+
+	iface := parts[0]
+	rx := parts[2]
+	tx := parts[4]
+	drops := parts[len(parts)-1]
+
+	row(fmt.Sprintf("NETWORK : %-5s RX: %-5s TX: %-5s", iface, rx, tx))
+	row(fmt.Sprintf("DROPS   : %s", drops))
 }

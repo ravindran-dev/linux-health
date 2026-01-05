@@ -13,6 +13,7 @@ import (
 )
 
 func main() {
+	// ---- SYSTEM STATS ----
 	stats, err := system.GetSystemStats()
 	if err != nil {
 		fmt.Println("error:", err)
@@ -21,36 +22,40 @@ func main() {
 
 	health := system.GenerateHealth(stats)
 
+	// ---- TOP MEMORY PROCESS ----
 	topName := ""
 	topPID := 0
-	var topMB uint64
+	topMB := uint64(0)
 
-	if topProc, _ := process.TopMemoryProcess(); topProc != nil {
+	topProc, _ := process.TopMemoryProcess()
+	if topProc != nil {
 		topName = topProc.Cmd
 		topPID = topProc.PID
 		topMB = topProc.MemKB / 1024
 	}
 
+	// ---- DISK HOTSPOTS (FAST) ----
 	hotspots := []string{}
-	dirs, _ := disk.TopDirs(os.Getenv("HOME"), 2)
-
+	dirs, _ := disk.TopDirs(os.Getenv("HOME"), 3)
 	for _, d := range dirs {
-		hotspots = append(hotspots, d.Path+" "+d.SizeHuman)
+		hotspots = append(hotspots,
+			fmt.Sprintf("%s %s", d.Path, d.SizeHuman),
+		)
 	}
 
-	// ---- SERVICES ----
-	services := []string{}
-	if failed, _ := service.FailedServices(); len(failed) > 0 {
-		for _, s := range failed {
-			services = append(services, s.Name+" ("+s.State+")")
-		}
+	// ---- FAILED SERVICES ----
+	failedServices := []string{}
+	failed, _ := service.FailedServices()
+	for _, s := range failed {
+		failedServices = append(failedServices,
+			fmt.Sprintf("%s (%s)", s.Name, s.State),
+		)
 	}
 
-	networkState := "inactive"
-	if nets, _ := network.ActiveInterfaces(); len(nets) > 0 {
-		networkState = "active"
-	}
+	// ---- NETWORK ----
+	networkState := network.Summary()
 
+	// ---- OUTPUT ----
 	output.PrintBlock(
 		stats,
 		health,
@@ -58,7 +63,7 @@ func main() {
 		topPID,
 		topMB,
 		networkState,
-		services,
+		failedServices,
 		hotspots,
 	)
 

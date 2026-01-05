@@ -3,7 +3,6 @@ package disk
 import (
 	"bytes"
 	"os/exec"
-	"sort"
 	"strings"
 )
 
@@ -13,7 +12,7 @@ type DirUsage struct {
 }
 
 func TopDirs(root string, limit int) ([]DirUsage, error) {
-	cmd := exec.Command("du", "-sh", root+"/*")
+	cmd := exec.Command("sh", "-c", "du -sh "+root+"/* 2>/dev/null")
 	var out bytes.Buffer
 	cmd.Stdout = &out
 
@@ -25,26 +24,14 @@ func TopDirs(root string, limit int) ([]DirUsage, error) {
 	var dirs []DirUsage
 
 	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
+		fields := strings.Fields(line)
+		if len(fields) >= 2 {
+			dirs = append(dirs, DirUsage{
+				SizeHuman: fields[0],
+				Path:      fields[1],
+			})
 		}
-
-		parts := strings.Fields(line)
-		if len(parts) < 2 {
-			continue
-		}
-
-		dirs = append(dirs, DirUsage{
-			SizeHuman: parts[0],
-			Path:      parts[1],
-		})
 	}
-
-	// Sort descending by size string (du already sorts roughly)
-	sort.Slice(dirs, func(i, j int) bool {
-		return dirs[i].SizeHuman > dirs[j].SizeHuman
-	})
 
 	if len(dirs) > limit {
 		dirs = dirs[:limit]
